@@ -1,5 +1,16 @@
+/**
+ * Cloud Function para actualizar productos en Shopify
+ * Endpoint: POST / (maneja título, precio y metafields)
+ * 
+ * @param {Object} req - Request HTTP con body JSON
+ * @param {Object} res - Response HTTP
+ */
+
+
 const functions = require('@google-cloud/functions-framework');
 const fetch = require('node-fetch');
+
+
 
 functions.http('productUpdater', async (req, res) => {
   res.set('Access-Control-Allow-Origin', '*');
