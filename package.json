@@ -1,11 +1,36 @@
+/**
+ * package.json for Shopify Product Updater
+ *
+ * Code designed by Pavel Alvarez @Codebypavel as a technical test for Aroma360
+ * Date: 19/08/2025
+ *
+ * Description:
+ * This file defines the project's metadata and dependencies. It lists the 
+ * necessary packages for the Cloud Function to run and provides scripts for 
+ * local development and deployment.
+ */
 {
+  // The name of the package.
   "name": "shopify-updater",
+
+  // The current version of the package.
   "version": "1.0.0",
+
+  // Lists the packages your project depends on to run.
   "dependencies": {
+
+    // The framework for writing and running Google Cloud Functions.
     "@google-cloud/functions-framework": "^3.0.0",
+
+    // A module that allows you to make HTTP requests, similar to `fetch` in the browser.
     "node-fetch": "^2.6.7"
   },
+
+  // Defines a set of scripts you can run with `npm run <script-name>`.
   "scripts": {
+
+    // A script to start the function locally using the Functions Framework, 
+    // targeting the 'productUpdater' function.
     "start": "functions-framework --target=productUpdater"
   }
 }
