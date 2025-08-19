@@ -1,0 +1,202 @@
+/**
+ * Shopify Product Updater Section
+ *
+ * Code designed by Pavel Alvarez @Codebypavel as a technical test for Aroma360
+ * Date: 19/08/2025
+ *
+ * Description:
+ * This Liquid snippet creates a user interface for updating Shopify products.
+ * It includes CSS for styling, an HTML form to select and edit a product,
+ * and JavaScript to handle the form submission and API communication.
+ */
+
+// This block defines the CSS styles for the product updater interface.
+// It ensures the form is well-structured, responsive, and visually appealing.
+{% style %}
+  .product-updater-wrapper {
+    max-width: 800px;
+    margin: 50px auto;
+    padding: 30px;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    background-color: #f9f9f9;
+  }
+  .product-updater-form .form-group {
+    margin-bottom: 20px;
+  }
+  .product-updater-form label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+  }
+  .product-updater-form select,
+  .product-updater-form input,
+  .product-updater-form textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 16px;
+  }
+  .product-updater-form textarea {
+    min-height: 100px;
+    resize: vertical;
+  }
+  .product-updater-form button {
+    width: 100%;
+    padding: 12px;
+    background-color: #5c6ac4;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+  }
+  .product-updater-form button:hover {
+    background-color: #4a56a6;
+  }
+  .product-updater-form button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+  }
+  #updater-status {
+    margin-top: 15px;
+    padding: 10px;
+    text-align: center;
+    border-radius: 5px;
+    font-weight: bold;
+  }
+  .success { 
+    background-color: #e3fcef; 
+    color: #50b83c;
+    border: 1px solid #50b83c;
+  }
+  .error { 
+    background-color: #fbeae5; 
+    color: #de3618;
+    border: 1px solid #de3618;
+  }
+{% endstyle %}
+
+// This is the main HTML structure for the form. It includes a dropdown
+// to select a product, and input fields for title, price, and description.
+<div class="product-updater-wrapper">
+  <h2>Quick Product Updater</h2>
+  <form id="product-updater-form" class="product-updater-form">
+    <div class="form-group">
+      <label for="product-select">Product</label>
+      <select id="product-select" name="product_id" required>
+        <option value="">-- Select a product --</option>
+        {% for product in collections.all.products %}
+          <option 
+            value="gid://shopify/Product/{{ product.id }}"
+            data-title="{{ product.title | escape }}"
+            data-price="{{ product.price | money_without_currency }}"
+            data-description="{{ product.metafields.custom.short_description | escape }}">
+            {{ product.title }} ({{ product.price | money }})
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="product-title">New Title</label>
+      <input type="text" id="product-title" name="title" required>
+    </div>
+
+    <div class="form-group">
+      <label for="product-price">New Price</label>
+      <input type="number" id="product-price" name="price" step="0.01" min="0" required>
+    </div>
+
+    <div class="form-group">
+      <label for="product-description">Short Description</label>
+      <textarea id="product-description" name="description" rows="3"></textarea>
+    </div>
+
+    <button type="submit">Update Product</button>
+    <div id="updater-status"></div>
+  </form>
+</div>
+
+// This script contains the client-side logic. It handles populating the
+// form when a product is selected and submitting the data to the Cloud Function.
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const form = document.getElementById('product-updater-form');
+  const select = document.getElementById('product-select');
+  const titleInput = document.getElementById('product-title');
+  const priceInput = document.getElementById('product-price');
+  const descInput = document.getElementById('product-description');
+  const statusDiv = document.getElementById('updater-status');
+
+  // 1. Load data of the selected product
+  select.addEventListener('change', function() {
+    const selectedOption = select.options[select.selectedIndex];
+    if (selectedOption.value) {
+      titleInput.value = selectedOption.dataset.title || '';
+      priceInput.value = selectedOption.dataset.price || '';
+      descInput.value = selectedOption.dataset.description || '';
+    }
+  });
+
+  // 2. Submit form - Final version
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    
+    const button = form.querySelector('button[type="submit"]');
+    button.disabled = true;
+    statusDiv.textContent = "Updating product...";
+    statusDiv.className = "";
+
+    // We use XMLHttpRequest for maximum compatibility
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', 'https://shopify-product-updater-685843209764.europe-west1.run.app', true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.setRequestHeader('Origin', window.location.origin);
+
+    xhr.onload = function() {
+      button.disabled = false;
+      
+      if (xhr.status === 200) {
+        const response = JSON.parse(xhr.responseText);
+        console.log("Update successful:", response);
+        statusDiv.textContent = "✅ Product updated successfully!";
+        statusDiv.className = "success";
+        
+        // Update data in the select element
+        const selectedOption = select.options[select.selectedIndex];
+        selectedOption.dataset.title = titleInput.value;
+        selectedOption.dataset.price = priceInput.value;
+        selectedOption.dataset.description = descInput.value;
+        selectedOption.text = `${titleInput.value} (${parseFloat(priceInput.value).toFixed(2)})`;
+        
+      } else {
+        console.error("Error in response:", xhr.responseText);
+        statusDiv.textContent = `❌ Error: ${xhr.statusText || "Unknown error"}`;
+        statusDiv.className = "error";
+      }
+    };
+
+    xhr.onerror = function() {
+      button.disabled = false;
+      statusDiv.textContent = "❌ Server connection error";
+      statusDiv.className = "error";
+      console.error("Network error:", xhr.statusText);
+    };
+
+    // Prepare data
+    const data = {
+      product_id: select.value,
+      title: titleInput.value,
+      price: parseFloat(priceInput.value),
+      description: descInput.value
+    };
+
+    console.log("Sending data:", data);
+    xhr.send(JSON.stringify(data));
+  }, true); // We use capture to run this first
+});
+</script>
