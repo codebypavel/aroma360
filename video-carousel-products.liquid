@@ -1,0 +1,514 @@
+/**
+ * Shopify Product Video Carousel Section
+ *
+ * Code designed by Pavel Alvarez @Codebypavel as a technical test for Aroma360
+ * Date: 24/08/2025
+ *
+ * Description:
+ * This Liquid section creates a responsive, touch-friendly carousel for showcasing 
+ * product videos. On mobile devices, clicking a video opens a full-screen modal 
+ * player with a "Shop Now" link. On desktop, it triggers a "Quick View" modal 
+ * that displays the video alongside product details (images, price, etc.) 
+ * fetched dynamically via the Shopify Storefront API. The section is fully 
+ * customizable through the Shopify Theme Editor.
+ */
+
+// ============================================================================
+// SECTION HTML STRUCTURE
+// ============================================================================
+-->
+<div 
+  id="video-carousel-{{ section.id }}" 
+  class="video-carousel-section" 
+  style="padding-top: {{ section.settings.padding_top }}px; padding-bottom: {{ section.settings.padding_bottom }}px;">
+  
+  <!-- Section Title: Renders only if a title is provided in the theme editor. -->
+  {%- if section.settings.title != blank -%}
+    <h2 class="section-title">{{ section.settings.title | escape }}</h2>
+  {%- endif -%}
+
+  <!-- Flickity Carousel Container: This div will be initialized as a carousel by the Flickity library. -->
+  <div class="video-main-carousel" data-flickity='{ "cellAlign": "left", "contain": true, "pageDots": false, "prevNextButtons": false }'>
+    
+    <!-- Loop through each block (video slide) defined in the theme editor. -->
+    {% for block in section.blocks %}
+      {%- assign product = block.settings.product -%}
+      
+      <!-- Carousel Cell: Represents a single video slide. -->
+      <!-- Data attributes are used to store necessary info for JavaScript interactions. -->
+      <div class="carousel-cell" 
+           data-video-src="{{ block.settings.video_mp4_url }}"
+           data-product-handle="{{ product.handle }}"
+           data-offer-text="{{ block.settings.offer_text | escape }}"
+           data-product-title="{{ product.title | escape }}"
+           data-product-image="{{ product.featured_image | image_url: width: 200 }}"
+           data-product-url="{{ product.url }}">
+        
+        <!-- Video Wrapper: Contains the video element for autoplaying in the background. -->
+        <div class="video-wrapper">
+          {% if block.settings.video_mp4_url != blank %}
+            <video src="{{ block.settings.video_mp4_url }}" muted loop autoplay playsinline preload="metadata"></video>
+          {% endif %}
+        </div>
+
+        <!-- Product Info Overlay: Shown at the bottom of the video cell. -->
+        {% if product != blank %}
+          <div class="product-info-overlay">
+            <div class="product-info-content">
+              <img src="{{ product.featured_image | image_url: width: 100 }}" alt="{{ product.featured_image.alt | escape }}" class="product-thumbnail">
+              <span class="product-title">{{ product.title }}</span>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- 
+// ============================================================================
+// MODAL STRUCTURES (Initially hidden)
+// ============================================================================
+-->
+
+<!-- Mobile Video Modal: Full-screen video player for mobile devices. -->
+<div id="video-modal-{{ section.id }}" class="video-modal" style="display: none;">
+  <button class="modal-close-btn" data-target="video-modal-{{ section.id }}">&times;</button>
+  <div class="modal-content">
+    <div class="modal-video-wrapper">
+      <video id="modal-video-player-{{ section.id }}" muted loop playsinline controls controlsList="nodownload nofullscreen"></video>
+    </div>
+    <div class="modal-product-area">
+      <div class="modal-product-details">
+        <img id="modal-product-image" src="" class="product-thumbnail">
+        <span id="modal-product-title" class="product-title"></span>
+      </div>
+      <a href="#" id="modal-shop-now-btn-video" class="shop-now-button">SHOP NOW</a>
+    </div>
+  </div>
+</div>
+
+<!-- Desktop Quick View Modal: Two-column layout for video and product details. -->
+<div id="quick-view-modal-{{ section.id }}" class="quick-view-modal" style="display: none;">
+  <div class="quick-view-overlay" data-target="quick-view-modal-{{ section.id }}"></div>
+  <div class="quick-view-content">
+    <button class="modal-close-btn" data-target="quick-view-modal-{{ section.id }}">&times;</button>
+    <!-- Left Column: Video Player -->
+    <div class="quick-view-video-col">
+      <video id="quick-view-video-player-{{ section.id }}" muted loop autoplay playsinline controls controlsList="nodownload nofullscreen"></video>
+    </div>
+    <!-- Right Column: Product Information (dynamically populated) -->
+    <div class="quick-view-product-col">
+      <div class="product-images">
+        <img id="quick-view-img1" src="">
+        <img id="quick-view-img2" src="">
+      </div>
+      <h2 id="quick-view-title"></h2>
+      <p id="quick-view-offer" class="offer-text"></p>
+      <div class="price-container">
+        <span id="quick-view-price"></span>
+        <s id="quick-view-compare-price"></s>
+      </div>
+      <a href="#" id="quick-view-shop-now-btn" class="shop-now-button">SHOP NOW</a>
+    </div>
+  </div>
+</div>
+
+<style>
+/*
+// ============================================================================
+// STYLES
+// ============================================================================
+*/
+
+/* --- Section & Carousel General Styles --- */
+.video-carousel-section { 
+  overflow: hidden; 
+}
+.section-title { 
+  text-align: center; 
+  margin-bottom: 25px; 
+}
+.carousel-cell { 
+  width: 280px; 
+  aspect-ratio: 9 / 16; 
+  margin-right: 15px; 
+  position: relative; 
+  overflow: hidden; 
+  border-radius: 12px; 
+  background-color: #f0f0f0; 
+  cursor: pointer; 
+}
+.video-wrapper, .video-wrapper video { 
+  position: absolute; top: 0; left: 0; 
+  width: 100%; height: 100%; 
+  object-fit: cover; 
+  pointer-events: none; 
+}
+.product-info-overlay { 
+  position: absolute; bottom: 0; left: 0; 
+  width: 100%; 
+  padding: 40px 15px 15px; 
+  background: linear-gradient(to top, rgba(0,0,0,0.7), transparent); 
+  z-index: 2; 
+}
+.product-info-content { 
+  display: flex; 
+  align-items: center; 
+}
+.product-thumbnail { 
+  width: 50px; height: 50px; 
+  object-fit: cover; 
+  border-radius: 4px; 
+  margin-right: 12px; 
+  flex-shrink: 0; 
+}
+.product-title { 
+  font-size: 14px; 
+  font-weight: 600; 
+  color: white; 
+}
+.shop-now-button { 
+  text-transform: uppercase; 
+}
+
+/* --- Mobile Video Modal Styles --- */
+.video-modal { 
+  position: fixed; top: 0; left: 0; 
+  width: 100%; height: 100%; 
+  background-color: black; 
+  z-index: 9999; 
+  display: none; 
+}
+.video-modal .modal-close-btn { 
+  position: absolute; top: 20px; right: 30px; 
+  font-size: 40px; color: white; 
+  background: none; border: none; 
+  cursor: pointer; z-index: 10; 
+}
+.video-modal .modal-content { 
+  width: 100%; height: 100%; 
+  position: relative; 
+  display: flex; align-items: center; justify-content: center; 
+}
+.video-modal .modal-video-wrapper, .video-modal .modal-video-wrapper video { 
+  width: 100%; height: 100%; 
+  object-fit: contain; 
+}
+.video-modal .modal-product-area { 
+  position: absolute; bottom: 70px; left: 50%; 
+  transform: translateX(-50%); 
+  width: 90%; max-width: 450px; 
+  padding: 10px; 
+  background: rgba(0, 0, 0, 0.5); 
+  backdrop-filter: blur(15px); 
+  border-radius: 10px; 
+  display: flex; align-items: center; justify-content: space-between; 
+  gap: 15px; 
+}
+.video-modal .modal-product-details { 
+  display: flex; align-items: center; gap: 15px; 
+}
+.video-modal .shop-now-button { 
+  padding: 10px 20px; 
+  background-color: white; color: black; 
+  text-align: center; text-decoration: none; 
+  font-weight: bold; border-radius: 8px; 
+  flex-shrink: 0; 
+}
+
+/* --- Desktop Quick View Modal Styles --- */
+.quick-view-modal { 
+  position: fixed; top: 0; left: 0; 
+  width: 100%; height: 100%; 
+  z-index: 10000; 
+  display: none; 
+  align-items: center; 
+  justify-content: center; 
+}
+.quick-view-content { 
+  display: flex; position: relative; 
+  z-index: 2; 
+  width: 60%; max-width: 950px; 
+  height: 80vh; max-height: 600px; 
+  background: white; 
+  border-radius: 12px; 
+  overflow: hidden; 
+}
+.quick-view-modal .modal-close-btn { 
+  position: absolute; top: 15px; right: 15px; 
+  font-size: 36px; line-height: 1; 
+  z-index: 1; color: black; 
+  background: none; border: none; 
+  cursor: pointer; 
+}
+.quick-view-video-col { flex: 0 0 50%; }
+.quick-view-video-col video { width: 100%; height: 100%; object-fit: cover; }
+.quick-view-product-col { 
+  flex: 0 0 50%; 
+  padding: 40px 30px; 
+  display: flex; flex-direction: column; 
+}
+.quick-view-product-col .product-images { 
+  display: flex; gap: 10px; 
+  margin-bottom: 20px; 
+}
+.quick-view-product-col .product-images img { 
+  width: 48%; aspect-ratio: 1/1; 
+  object-fit: cover; border-radius: 8px; 
+  background-color: #f0f0f0; 
+}
+.quick-view-product-col h2 { 
+  font-size: 24px; font-weight: bold; 
+  margin: 0 0 10px; text-transform: uppercase; 
+}
+.quick-view-product-col .offer-text { 
+  font-size: 14px; color: #555; 
+  margin: 0 0 10px; 
+}
+.quick-view-product-col .price-container { 
+  margin: 0 0 auto; 
+  display: flex; gap: 10px; align-items: center; 
+  font-size: 16px; 
+}
+.quick-view-product-col .price-container s { 
+  color: #888; text-decoration: line-through; 
+}
+.quick-view-product-col .shop-now-button { 
+  width: 100%; padding: 15px; 
+  background: black; color: white; 
+  border-radius: 8px; 
+  text-decoration: none; text-align: center; font-weight: bold; 
+}
+
+/* --- Overlay Blur Effect & Fallback --- */
+.quick-view-overlay {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 1;
+  cursor: pointer;
+}
+/* Fallback for browsers that do not support backdrop-filter */
+@supports not ((backdrop-filter: blur(6px)) or (-webkit-backdrop-filter: blur(6px))) {
+  .quick-view-overlay {
+    background: rgba(0,0,0,0.7);
+  }
+}
+
+/* --- Responsive Design --- */
+@media screen and (max-width: 749px) {
+  .video-main-carousel { padding-left: 15px; }
+  .carousel-cell { width: 55%; aspect-ratio: 9 / 16; }
+  /* Hide the desktop quick view modal on mobile entirely */
+  .quick-view-modal { display: none !important; }
+}
+</style>
+
+<script>
+/**
+ * ============================================================================
+ * SCRIPT LOGIC
+ * ============================================================================
+ * This script handles all interactive functionality for the video carousel,
+ * including modal management, event handling, and dynamic data fetching.
+ */
+document.addEventListener('DOMContentLoaded', function() {
+
+  // --- 1. INITIALIZATION ---
+  // Get section-specific variables and DOM elements.
+  const sectionId = '{{ section.id }}';
+  const shopLocale = {{ shop.locale | json }};
+  const shopCurrency = {{ shop.currency | json }};
+  
+  const videoModal = document.getElementById(`video-modal-${sectionId}`);
+  const quickViewModal = document.getElementById(`quick-view-modal-${sectionId}`);
+  
+  // Exit if essential modal elements are not found.
+  if (!videoModal || !quickViewModal) return;
+
+  const modals = {
+    [`video-modal-${sectionId}`]: videoModal,
+    [`quick-view-modal-${sectionId}`]: quickViewModal
+  };
+  
+  const videoModalPlayer = document.getElementById(`modal-video-player-${sectionId}`);
+  const quickViewVideoPlayer = document.getElementById(`quick-view-video-player-${sectionId}`);
+  const quickViewContent = quickViewModal.querySelector('.quick-view-content');
+
+  // --- 2. MODAL MANAGEMENT FUNCTIONS ---
+
+  /**
+   * Opens a specified modal and freezes body scroll.
+   * @param {HTMLElement} modal The modal element to open.
+   */
+  function openModal(modal) {
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+
+  /**
+   * Closes a specified modal, resumes body scroll, and stops any playing videos.
+   * @param {HTMLElement} modal The modal element to close.
+   */
+  function closeModal(modal) {
+    modal.style.display = 'none';
+    document.body.style.overflow = '';
+    videoModalPlayer.pause();
+    quickViewVideoPlayer.pause();
+    videoModalPlayer.src = '';
+    quickViewVideoPlayer.src = '';
+  }
+
+  // --- 3. EVENT LISTENERS ---
+
+  // Attach close event to all close buttons and overlays.
+  document.querySelectorAll('.modal-close-btn, .quick-view-overlay').forEach(el => {
+    el.addEventListener('click', (e) => {
+      const modalToClose = modals[e.currentTarget.dataset.target];
+      if (modalToClose) closeModal(modalToClose);
+    });
+  });
+
+  // Prevent clicks inside the quick view content from closing the modal.
+  quickViewContent.addEventListener('click', (e) => e.stopPropagation());
+
+  // Main click handler for each video cell in the carousel.
+  document.querySelectorAll(`#video-carousel-${sectionId} .carousel-cell`).forEach(cell => {
+    cell.addEventListener('click', (e) => {
+      const data = cell.dataset;
+      const isDesktop = window.innerWidth > 749;
+
+      if (isDesktop) {
+        // --- DESKTOP BEHAVIOR: Open Quick View Modal ---
+        const productHandle = data.productHandle;
+        if (!productHandle) return;
+
+        // Populate modal with initial data from the cell.
+        document.getElementById('quick-view-title').textContent = data.productTitle;
+        document.getElementById('quick-view-img1').src = ''; // Clear previous images
+        document.getElementById('quick-view-img2').src = '';
+        
+        openModal(quickViewModal);
+        quickViewVideoPlayer.src = data.videoSrc;
+        quickViewVideoPlayer.play();
+
+        // Fetch detailed product data from Shopify's Product JSON API.
+        fetch(`/products/${productHandle}.js`)
+          .then(response => response.json())
+          .then(product => {
+            // --- Populate Images ---
+            const imgs = (Array.isArray(product.images) ? product.images : [])
+              .map(u => (u.startsWith('http') ? u : `https:${u}`));
+
+            const img1 = document.getElementById('quick-view-img1');
+            const img2 = document.getElementById('quick-view-img2');
+
+            img1.src = imgs[0] || '';
+            img1.style.display = imgs[0] ? 'block' : 'none';
+            img2.src = imgs[1] || '';
+            img2.style.display = imgs[1] ? 'block' : 'none';
+
+            // --- Populate Price ---
+            const priceEl = document.getElementById('quick-view-price');
+            const compareEl = document.getElementById('quick-view-compare-price');
+            
+            if (product.price) {
+              priceEl.textContent = new Intl.NumberFormat(shopLocale, { 
+                style: 'currency', currency: shopCurrency 
+              }).format(product.price / 100);
+            }
+
+            if (product.compare_at_price > product.price) {
+              compareEl.textContent = new Intl.NumberFormat(shopLocale, { 
+                style: 'currency', currency: shopCurrency 
+              }).format(product.compare_at_price / 100);
+              compareEl.style.display = 'inline';
+            } else {
+              compareEl.style.display = 'none';
+            }
+
+            // --- Populate Offer Text & Shop Now Button ---
+            document.getElementById('quick-view-offer').textContent = data.offerText || '';
+            document.getElementById('quick-view-shop-now-btn').href = product.url;
+          });
+
+      } else {
+        // --- MOBILE BEHAVIOR: Open Full-Screen Video Modal ---
+        document.getElementById('modal-product-image').src = data.productImage;
+        document.getElementById('modal-product-title').textContent = data.productTitle;
+        document.getElementById('modal-shop-now-btn-video').href = data.productUrl;
+        
+        openModal(videoModal);
+        videoModalPlayer.src = data.videoSrc;
+        videoModalPlayer.play();
+      }
+    });
+  });
+});
+</script>
+
+{% schema %}
+{
+  "name": "Carrusel Videos Producto",
+  "settings": [
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Título de la sección",
+      "default": "Nuestros Videos"
+    },
+    { 
+      "type": "range", 
+      "id": "padding_top", 
+      "min": 0, "max": 100, "step": 4, 
+      "unit": "px", 
+      "label": "Espaciado superior", 
+      "default": 0 
+    },
+    { 
+      "type": "range", 
+      "id": "padding_bottom", 
+      "min": 0, "max": 100, "step": 4, 
+      "unit": "px", 
+      "label": "Espaciado inferior", 
+      "default": 0 
+    }
+  ],
+  "blocks": [
+    {
+      "type": "video_slide",
+      "name": "Video Slide",
+      "settings": [
+        { 
+          "type": "url", 
+          "id": "video_mp4_url", 
+          "label": "URL del Video MP4", 
+          "info": "Sube el video en 'Contenido > Archivos' y pega el enlace aquí." 
+        },
+        { 
+          "type": "product", 
+          "id": "product", 
+          "label": "Seleccionar Producto" 
+        },
+        { 
+          "type": "text", 
+          "id": "offer_text", 
+          "label": "Texto de Oferta (Opcional)", 
+          "info": "Aparecerá en la vista rápida del producto." 
+        }
+      ]
+    }
+  ],
+  "presets": [
+    { 
+      "name": "Carrusel Videos Producto" 
+    }
+  ]
+}
+{% endschema %}
+
+
+
