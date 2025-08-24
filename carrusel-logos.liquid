@@ -1,0 +1,221 @@
+{% comment %}
+/**
+ * Shopify Logo Marquee Section
+ *
+ * Code designed by Pavel Alvarez @Codebypavel
+ * Date: 24/08/2025
+ *
+ * Description:
+ * This section creates a continuously scrolling marquee of logos, perfect for
+ * displaying press mentions, partners, or brands. It is designed to be highly
+ * customizable through the Shopify Theme Editor, allowing merchants to upload a 
+ * single image strip containing all logos, and control the speed and direction 
+ * of the animation. The effect is achieved using pure CSS for optimal performance.
+ */
+
+// ============================================================================
+// SETTINGS & VARIABLES
+// ============================================================================
+
+{% endcomment %}
+
+{%- liquid
+  assign image_1 = section.settings.logo_image_1
+  assign image_2 = section.settings.logo_image_2
+  assign image_3 = section.settings.logo_image_3
+
+  assign speed = section.settings.speed
+  assign direction = section.settings.direction
+
+  assign has_images = false
+  if image_1 or image_2 or image_3
+    assign has_images = true
+  endif
+-%}
+
+<!-- 
+// ============================================================================
+// HTML STRUCTURE
+// ============================================================================
+-->
+<div class="logo-marquee-section" style="padding-top: {{ section.settings.padding_top }}px; padding-bottom: {{ section.settings.padding_bottom }}px;">
+  <div class="logo-marquee__container">
+    
+    <!-- 
+      The content wrapper holds two identical strips of logos. The animation moves
+      this wrapper by the width of one strip, creating a perfect and seamless loop.
+    -->
+    <div class="logo-marquee__content" data-direction="{{ direction }}" style="animation-duration: {{ speed }}s;">
+      
+      <!-- Strip 1: The primary set of logos. -->
+      <div class="logo-marquee__strip">
+        {% if image_1 != blank %}<img src="{{ image_1 | image_url: height: 60 }}" alt="{{ image_1.alt | default: 'Logo' | escape }}">{% endif %}
+        {% if image_2 != blank %}<img src="{{ image_2 | image_url: height: 60 }}" alt="{{ image_2.alt | default: 'Logo' | escape }}">{% endif %}
+        {% if image_3 != blank %}<img src="{{ image_3 | image_url: height: 60 }}" alt="{{ image_3.alt | default: 'Logo' | escape }}">{% endif %}
+      </div>
+
+      <!-- Strip 2: A duplicated set for the infinite loop effect. aria-hidden ensures it's ignored by screen readers. -->
+      <div class="logo-marquee__strip" aria-hidden="true">
+        {% if image_1 != blank %}<img src="{{ image_1 | image_url: height: 60 }}" alt="{{ image_1.alt | default: 'Logo' | escape }}">{% endif %}
+        {% if image_2 != blank %}<img src="{{ image_2 | image_url: height: 60 }}" alt="{{ image_2.alt | default: 'Logo' | escape }}">{% endif %}
+        {% if image_3 != blank %}<img src="{{ image_3 | image_url: height: 60 }}" alt="{{ image_3.alt | default: 'Logo' | escape }}">{% endif %}
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<style>
+/*
+// ============================================================================
+// STYLES
+// ============================================================================
+*/
+.logo-marquee-section {
+  width: 100%;
+}
+
+.logo-marquee__container {
+  overflow: hidden;
+  pointer-events: none;
+  position: relative;
+}
+
+.logo-marquee__content {
+  /* Aligns the two logo strips side-by-side. */
+  display: flex;
+  width: fit-content;
+}
+
+.logo-marquee__strip {
+  /* Aligns the individual logos within a strip. */
+  display: flex;
+  align-items: center;
+  flex-shrink: 0; /* Prevents the strip from shrinking. */
+}
+
+.logo-marquee__strip img {
+  max-width: none; /* Allows images to render at their natural width. */
+  height: 25px;    /* Sets a consistent height for all logos. */
+  padding: 0 40px; /* Adds horizontal space around each logo. */
+}
+
+/*
+ * ----------------------------------------------------------------------------
+ * ROBUST CSS ANIMATIONS FOR A PERFECTLY SEAMLESS SCROLL
+ * ----------------------------------------------------------------------------
+ * The container holds two identical strips. The animation translates the container
+ * by -50% of its total width, which is exactly the width of one strip.
+ * This creates a flawless, jump-free infinite loop.
+ */
+@keyframes scroll-left {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@keyframes scroll-right {
+  from { transform: translateX(-50%); }
+  to { transform: translateX(0); }
+}
+
+/* Apply the correct animation based on the direction selected in the editor. */
+.logo-marquee__content[data-direction="left"] {
+  animation-name: scroll-left;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.logo-marquee__content[data-direction="right"] {
+  animation-name: scroll-right;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+</style>
+
+{% schema %}
+{
+  "name": "Carrusel Logos",
+  "class": "shopify-section--logo-marquee",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Image Settings"
+    },
+    {
+      "type": "image_picker",
+      "id": "logo_image_1",
+      "label": "Logo Image 1"
+    },
+    {
+      "type": "image_picker",
+      "id": "logo_image_2",
+      "label": "Logo Image 2"
+    },
+    {
+      "type": "image_picker",
+      "id": "logo_image_3",
+      "label": "Logo Image 3"
+    },
+    {
+      "type": "header",
+      "content": "Animation Settings"
+    },
+    {
+      "type": "range",
+      "id": "speed",
+      "min": 1,
+      "max": 100,
+      "step": 1,
+      "unit": "s",
+      "label": "Animation duration",
+      "info": "Controls the speed. A higher number means a slower scroll.",
+      "default": 40
+    },
+    {
+      "type": "select",
+      "id": "direction",
+      "label": "Scroll direction",
+      "options": [
+        {
+          "value": "left",
+          "label": "Right to Left"
+        },
+        {
+          "value": "right",
+          "label": "Left to Right"
+        }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "header",
+      "content": "Section Spacing"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Section padding top",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Section padding bottom",
+      "default": 40
+    }
+  ],
+  "presets": [
+    {
+      "name": "Carrusel Logos"
+    }
+  ]
+}
+{% endschema %}
