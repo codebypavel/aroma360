@@ -6,11 +6,11 @@
  *
  * Description:
  * This Liquid section creates a responsive, touch-friendly carousel for showcasing 
- * product videos. On mobile devices, clicking a video opens a full-screen modal 
- * player with a "Shop Now" link. On desktop, it triggers a "Quick View" modal 
- * that displays the video alongside product details (images, price, etc.) 
- * fetched dynamically via the Shopify Storefront API. The section is fully 
- * customizable through the Shopify Theme Editor.
+ * product videos. It features a customizable main title with adjustable top and bottom
+ * margins. On mobile devices, clicking a video opens a full-screen modal player with a
+ * "Shop Now" link. On desktop, it triggers a "Quick View" modal that displays the
+ * video alongside product details fetched dynamically via the Shopify Storefront API.
+ * The section is fully customizable through the Shopify Theme Editor.
  */
 
 // ============================================================================
@@ -23,8 +23,13 @@
   style="padding-top: {{ section.settings.padding_top }}px; padding-bottom: {{ section.settings.padding_bottom }}px;">
   
   <!-- Section Title: Renders only if a title is provided in the theme editor. -->
+  <!-- Margins are controlled by theme editor settings for fine-tuned spacing. -->
   {%- if section.settings.title != blank -%}
-    <h2 class="section-title">{{ section.settings.title | escape }}</h2>
+    <h2 
+      class="section-title" 
+      style="margin-top: {{ section.settings.title_margin_top }}px; margin-bottom: {{ section.settings.title_margin_bottom }}px;">
+      {{ section.settings.title | escape }}
+    </h2>
   {%- endif -%}
 
   <!-- Flickity Carousel Container: This div will be initialized as a carousel by the Flickity library. -->
@@ -127,7 +132,7 @@
 }
 .section-title { 
   text-align: center; 
-  margin-bottom: 25px; 
+  /* Margins are now applied via an inline style for editor control */
 }
 .carousel-cell { 
   width: 280px; 
@@ -455,17 +460,15 @@ document.addEventListener('DOMContentLoaded', function() {
   "name": "Carrusel Videos Producto",
   "settings": [
     {
-      "type": "text",
-      "id": "title",
-      "label": "Título de la sección",
-      "default": "Nuestros Videos"
+      "type": "header",
+      "content": "General Settings"
     },
     { 
       "type": "range", 
       "id": "padding_top", 
       "min": 0, "max": 100, "step": 4, 
       "unit": "px", 
-      "label": "Espaciado superior", 
+      "label": "Section padding top", 
       "default": 0 
     },
     { 
@@ -473,8 +476,38 @@ document.addEventListener('DOMContentLoaded', function() {
       "id": "padding_bottom", 
       "min": 0, "max": 100, "step": 4, 
       "unit": "px", 
-      "label": "Espaciado inferior", 
-      "default": 0 
+      "label": "Section padding bottom", 
+      "default": 40 
+    },
+    {
+      "type": "header",
+      "content": "Title Settings"
+    },
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Title",
+      "default": "Our Videos"
+    },
+    {
+      "type": "range",
+      "id": "title_margin_top",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "unit": "px",
+      "label": "Title margin top",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "title_margin_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "unit": "px",
+      "label": "Title margin bottom",
+      "default": 30
     }
   ],
   "blocks": [
@@ -509,6 +542,8 @@ document.addEventListener('DOMContentLoaded', function() {
   ]
 }
 {% endschema %}
+
+
 
 
 
